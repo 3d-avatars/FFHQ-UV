@@ -44,10 +44,10 @@ class UvRunner:
     def generate_uv(
         self,
         input_file_path: str,
-        output_file_path: str,
-    ):
+        output_dir_path: str,
+    ) -> str:
         ffhq_uv_logger = Logger(
-            vis_dir=output_file_path,
+            vis_dir=output_dir_path,
             flag=f'texgan_{self.texgan_model_name[:-4]}',
             is_tb=True,
         )
@@ -59,7 +59,7 @@ class UvRunner:
         
         basename = input_file_path[input_file_path.rfind("/") + 1: input_file_path.rfind(".")]
 
-        torch.save(input_data, os.path.join(output_file_path, f"{basename}_ffhq_uv.pt"))
+        torch.save(input_data, os.path.join(output_dir_path, f"{basename}_ffhq_uv.pt"))
 
         input_img = tensor2np(input_data["img"][:1, :, :, :])
 
@@ -75,12 +75,12 @@ class UvRunner:
         mask_image = Image.fromarray((img3channel(parse_mask) * 255).astype(np.uint8))
         orig_image = Image.fromarray((img3channel(input_img)).astype(np.uint8))
 
-        mask_image.save(os.path.join(output_file_path, "ffhq_uv_mask.png"))
-        orig_image.save(os.path.join(output_file_path, "orig.png"))
+        mask_image.save(os.path.join(output_dir_path, "ffhq_uv_mask.png"))
+        orig_image.save(os.path.join(output_dir_path, "orig.png"))
 
         lm_img = draw_landmarks(input_img, gt_lm, color="b")
         combine_img = np.concatenate([input_img, skin_img, parse_img, lm_img], axis=1)
-        save_img(combine_img, os.path.join(output_file_path, f"{basename}_ffqh_uv_vis.png"))
+        save_img(combine_img, os.path.join(output_dir_path, f"{basename}_ffqh_uv_vis.png"))
 
         toc = time.time()
         logger.info(f"Finished processing input image: {input_file_path}, took {toc - tic:.4f} seconds.")
@@ -95,16 +95,16 @@ class UvRunner:
         toc = time.time()
 
         logger.info(f"Finished fitting uv texture, took {toc - tic:.4f} seconds")
+        return f"{output_dir_path}/stage3_uv.png"
 
 
     def apply_uv(
         self,
         input_mesh_path: str,
-        refer_mesh_path: str,
         output_mesh_path: str,
-    ):
+    ) -> (str, str):
         logger.info(f"Starting applying UV map for {input_mesh_path}")
-        # refer_mesh_path = './flame2hifi3d_assets/FLAME_w_HIFI3D_UV.obj'
+        refer_mesh_path = './FLAME_Apply_HIFI3D_UV/flame2hifi3d_assets/FLAME_w_HIFI3D_UV.obj'
         # save_mesh_path = f'{input_mesh_path[:-4]}_w_HIFI3D_UV.obj'
 
         refer_data = read_mesh_obj(refer_mesh_path)
@@ -158,7 +158,9 @@ class UvRunner:
             'fvt': np.array(eyes_faces_textures)
         }
 
-        write_mesh_obj(eyes_data, f'{output_mesh_path[:-4]}_eyeballs.obj')
+        eyeballs_mesh_file = f'{output_mesh_path[:-4]}_eyeballs.obj'
+
+        write_mesh_obj(eyes_data, eyeballs_mesh_file)
 
         vertices_to_delete = []
         faces_to_delete = []
@@ -178,5 +180,9 @@ class UvRunner:
         flame_data['fv'] = np.delete(flame_data['fv'], faces_to_delete, axis=0)
         flame_data['fvt'] = np.delete(flame_data['fvt'], faces_to_delete, axis=0)
 
-        write_mesh_obj(flame_data, f'{output_mesh_path[:-4]}_without_eyeballs.obj')
+        head_mesh_file = f'{output_mesh_path[:-4]}_without_eyeballs.obj'
+
+        write_mesh_obj(flame_data, head_mesh_file)
         logger.info(f"Finished applying UV map for {input_mesh_path}")
+
+        return (eyeballs_mesh_file, head_mesh_file)
