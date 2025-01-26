@@ -14,11 +14,9 @@ from .RGB_Fitting.utils.data_utils import setup_seed
 from .RGB_Fitting.utils.data_utils import tensor2np, img3channel, draw_mask, draw_landmarks, save_img
 from .RGB_Fitting.utils.visual_utils import Logger
 
-
 logger = logging.getLogger(__name__)
 file_path = str(Path(__file__).absolute())
 dir_path = file_path[: file_path.rfind("/")]
-
 
 class UvRunner:
 
@@ -28,7 +26,7 @@ class UvRunner:
         self.device = "cuda"
         self.checkpoints_dir = f"{dir_path}/checkpoints"
         self.topo_assets_dir = f"{dir_path}/topo_assets"
-        self.texgan_model_name = "texgan_ffhq_uv.pth"
+        self.texgan_model_name = "texgan_cropface630resize1024_ffhq_uv_interpolate.pth"
         self.fit_dataset = FitDataset(
             lm_detector_path=os.path.join(self.checkpoints_dir, "lm_model/68lm_detector.pb"),
             mtcnn_detector_path=os.path.join(self.checkpoints_dir, "mtcnn_model/mtcnn_model.pb"),
@@ -52,12 +50,6 @@ class UvRunner:
         original_image_file_path: str,
         ffhq_uv_mask_path: str,
     ) -> str:
-        ffhq_uv_logger = Logger(
-            vis_dir=output_dir_path,
-            flag=f'texgan_{self.texgan_model_name[:-4]}',
-            is_tb=True,
-        )
-
         logger.info("[UV Runner] Starting processing input image")
 
         tic = time.time()
@@ -94,6 +86,12 @@ class UvRunner:
         logger.info(f"[UV Runner] Starting fitting uv texture")
         if "trans_params" in input_data:
             input_data.pop("trans_params")
+
+        ffhq_uv_logger = Logger(
+            vis_dir=output_dir_path,
+            flag=f'texgan_{self.texgan_model_name[:-4]}',
+            is_tb=True,
+        )
 
         input_data = {k: v.to(self.device) for (k, v) in input_data.items()}
         tic = time.time()
