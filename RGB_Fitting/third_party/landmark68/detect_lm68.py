@@ -3,9 +3,14 @@ import numpy as np
 from scipy.io import loadmat
 import tensorflow as tf
 from shutil import move
+from pathlib import Path
 
-BBRegressorParam = loadmat('third_party/landmark68/BBRegressorParam_r.mat')
-mean_face = np.loadtxt('third_party/landmark68/test_mean_face.txt')
+
+file_path = str(Path(__file__).absolute())
+dir_path = file_path[: file_path.rfind("/")]
+
+BBRegressorParam = loadmat(f'{dir_path}/BBRegressorParam_r.mat')
+mean_face = np.loadtxt(f'{dir_path}/test_mean_face.txt')
 mean_face = mean_face.reshape([68, 2])
 
 

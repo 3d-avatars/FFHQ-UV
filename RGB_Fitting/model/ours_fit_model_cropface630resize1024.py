@@ -6,12 +6,12 @@ import torch.nn.functional as F
 from .hifi3dpp import ParametricFaceModel
 from .renderer_nvdiffrast import MeshRenderer
 from . import uvtex_spherical_fixshape_fitter, uvtex_wspace_shape_joint_fitter
-from network import texgan_cropface630resize1024
-from network.recog import define_net_recog
-from network.recon_deep3d import define_net_recon_deep3d
-from network.stylegan2 import dnnlib
-from utils.data_utils import setup_seed, tensor2np, np2tensor, draw_mask, draw_landmarks, img3channel, read_img
-from utils.mesh_utils import unwrap_vertex_to_uv, blend_uv_with_template, write_mesh_obj, write_mtl
+from ..network import texgan_cropface630resize1024
+from ..network.recog import define_net_recog
+from ..network.recon_deep3d import define_net_recon_deep3d
+from ..network.stylegan2 import dnnlib
+from ..utils.data_utils import setup_seed, tensor2np, np2tensor, draw_mask, draw_landmarks, img3channel, read_img
+from ..utils.mesh_utils import unwrap_vertex_to_uv, blend_uv_with_template, write_mesh_obj, write_mtl
 
 
 class FitModel:

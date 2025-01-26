@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from .stylegan2.networks import Generator
-from utils.data_utils import read_img, np2tensor, tensor2np, img2mask
+from ..utils.data_utils import read_img, np2tensor, tensor2np, img2mask
 
 
 def match_color_in_yuv(src_tex, dst_tex, mask):

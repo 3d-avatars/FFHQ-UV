@@ -5,15 +5,19 @@ import numpy as np
 import os
 import torch
 from PIL import Image
-from model import ours_fit_model_cropface630resize1024
-from utils.visual_utils import Logger
-from utils.data_utils import setup_seed
+from pathlib import Path
 
-from RGB_Fitting.dataset.fit_dataset import FitDataset
-from RGB_Fitting.utils.data_utils import tensor2np, img3channel, draw_mask, draw_landmarks, save_img
-from FLAME_Apply_HIFI3D_UV.run_flame_apply_hifi3d_uv import read_mesh_obj, write_mesh_obj
+from .FLAME_Apply_HIFI3D_UV.run_flame_apply_hifi3d_uv import read_mesh_obj, write_mesh_obj
+from .RGB_Fitting.dataset.fit_dataset import FitDataset
+from .RGB_Fitting.model import ours_fit_model_cropface630resize1024
+from .RGB_Fitting.utils.data_utils import setup_seed
+from .RGB_Fitting.utils.data_utils import tensor2np, img3channel, draw_mask, draw_landmarks, save_img
+from .RGB_Fitting.utils.visual_utils import Logger
+
 
 logger = logging.getLogger(__name__)
+file_path = str(Path(__file__).absolute())
+dir_path = file_path[: file_path.rfind("/")]
 
 
 class UvRunner:
@@ -22,8 +26,8 @@ class UvRunner:
         setup_seed(123)
 
         self.device = "cuda"
-        self.checkpoints_dir = "../checkpoints"
-        self.topo_assets_dir = "../topo_assets"
+        self.checkpoints_dir = f"{dir_path}/checkpoints"
+        self.topo_assets_dir = f"{dir_path}/topo_assets"
         self.texgan_model_name = "texgan_ffhq_uv.pth"
         self.fit_dataset = FitDataset(
             lm_detector_path=os.path.join(self.checkpoints_dir, "lm_model/68lm_detector.pb"),
@@ -97,14 +101,13 @@ class UvRunner:
         logger.info(f"Finished fitting uv texture, took {toc - tic:.4f} seconds")
         return f"{output_dir_path}/stage3_uv.png"
 
-
     def apply_uv(
         self,
         input_mesh_path: str,
         output_mesh_path: str,
     ) -> (str, str):
         logger.info(f"Starting applying UV map for {input_mesh_path}")
-        refer_mesh_path = './FLAME_Apply_HIFI3D_UV/flame2hifi3d_assets/FLAME_w_HIFI3D_UV.obj'
+        refer_mesh_path = f'{dir_path}/FLAME_Apply_HIFI3D_UV/flame2hifi3d_assets/FLAME_w_HIFI3D_UV.obj'
         # save_mesh_path = f'{input_mesh_path[:-4]}_w_HIFI3D_UV.obj'
 
         refer_data = read_mesh_obj(refer_mesh_path)
