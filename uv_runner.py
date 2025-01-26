@@ -184,7 +184,7 @@ class UvRunner:
         flame_data['fv'] = np.delete(flame_data['fv'], faces_to_delete, axis=0)
         flame_data['fvt'] = np.delete(flame_data['fvt'], faces_to_delete, axis=0)
 
-        head_mesh_file = f'{output_mesh_path[:-4]}_without_eyeballs.obj'
+        head_mesh_file = output_mesh_path
 
         write_mesh_obj(flame_data, head_mesh_file)
         logger.info(f"Finished applying UV map for {input_mesh_path}")
