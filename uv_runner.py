@@ -58,7 +58,7 @@ class UvRunner:
             is_tb=True,
         )
 
-        logger.info("Starting processing input image")
+        logger.info("[UV Runner] Starting processing input image")
 
         tic = time.time()
         input_data = self.fit_dataset.get_input_data(input_file_path)
@@ -89,9 +89,9 @@ class UvRunner:
         save_img(combine_img, os.path.join(output_dir_path, f"{basename}_ffqh_uv_vis.png"))
 
         toc = time.time()
-        logger.info(f"Finished processing input image: {input_file_path}, took {toc - tic:.4f} seconds.")
+        logger.info(f"[UV Runner] Finished processing input image: {input_file_path}, took {toc - tic:.4f} seconds.")
 
-        logger.info(f"Starting fitting uv texture")
+        logger.info(f"[UV Runner] Starting fitting uv texture")
         if "trans_params" in input_data:
             input_data.pop("trans_params")
 
@@ -100,7 +100,7 @@ class UvRunner:
         self.fit_model.fitting(input_data=input_data, logger=ffhq_uv_logger)
         toc = time.time()
 
-        logger.info(f"Finished fitting uv texture, took {toc - tic:.4f} seconds")
+        logger.info(f"[UV Runner] Finished fitting uv texture, took {toc - tic:.4f} seconds")
         return f"{output_dir_path}/stage3_uv.png"
 
     def apply_uv(
@@ -108,7 +108,7 @@ class UvRunner:
         input_mesh_path: str,
         output_mesh_path: str,
     ) -> (str, str):
-        logger.info(f"Starting applying UV map for {input_mesh_path}")
+        logger.info(f"[UV Runner] Starting applying UV map for {input_mesh_path}")
         refer_mesh_path = f'{dir_path}/FLAME_Apply_HIFI3D_UV/flame2hifi3d_assets/FLAME_w_HIFI3D_UV.obj'
         # save_mesh_path = f'{input_mesh_path[:-4]}_w_HIFI3D_UV.obj'
 
@@ -189,6 +189,6 @@ class UvRunner:
         head_mesh_file = output_mesh_path
 
         write_mesh_obj(flame_data, head_mesh_file)
-        logger.info(f"Finished applying UV map for {input_mesh_path}")
+        logger.info(f"[UV Runner] Finished applying UV map for {input_mesh_path}")
 
         return (eyeballs_mesh_file, head_mesh_file)
