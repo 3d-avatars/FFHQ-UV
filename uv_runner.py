@@ -49,6 +49,8 @@ class UvRunner:
         self,
         input_file_path: str,
         output_dir_path: str,
+        original_image_file_path: str,
+        ffhq_uv_mask_path: str,
     ) -> str:
         ffhq_uv_logger = Logger(
             vis_dir=output_dir_path,
@@ -79,8 +81,8 @@ class UvRunner:
         mask_image = Image.fromarray((img3channel(parse_mask) * 255).astype(np.uint8))
         orig_image = Image.fromarray((img3channel(input_img)).astype(np.uint8))
 
-        mask_image.save(os.path.join(output_dir_path, "ffhq_uv_mask.png"))
-        orig_image.save(os.path.join(output_dir_path, "orig.png"))
+        mask_image.save(original_image_file_path)
+        orig_image.save(ffhq_uv_mask_path)
 
         lm_img = draw_landmarks(input_img, gt_lm, color="b")
         combine_img = np.concatenate([input_img, skin_img, parse_img, lm_img], axis=1)
