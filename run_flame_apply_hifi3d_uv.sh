@@ -6,8 +6,8 @@ set -e
 # flame_mesh_path: the path of the mesh of the head which is with FLAME topology.
 # uvmap_name: the filename of the UV-texture map which is with HIFI3D++ topology. It should be in the same directory with mesh.
 #################################################################
-flame_mesh_path=../examples/flame_apply_hifi3d_uv_examples/flame_head.obj
-uvmap_name=hifi3d_tex_uv.png
+flame_mesh_path=../input_mesh/posterka/jackie_chan_happy.obj
+uvmap_name=../output/jackie_chan/stage3_uv.png
 
 
 #################### Run Add Eyeball Script #####################

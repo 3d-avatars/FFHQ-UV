@@ -9,3 +9,11 @@
 /examples/fitting_examples/outputs*
 /debug_data
 /debug*
+.ipynb_checkpoints
+**/.ipynb_checkpoints
+___All_Errors.txt
+input
+input_mesh
+output
+demos
+

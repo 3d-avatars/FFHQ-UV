@@ -146,6 +146,19 @@ class FitModel:
         input_img = tensor2np(input_data['img'][:1, :, :, :])
         skin_img = img3channel(tensor2np(input_data['skin_mask'][:1, :, :, :]))
         parse_mask = tensor2np(input_data['parse_mask'][:1, :, :, :], dst_range=1.0)
+
+        # Преобразуем parse_mask в numpy-массив (оно уже сделано через tensor2np)
+        mask_array = parse_mask  # parse_mask уже является numpy-массивом
+        
+        # Нормализуем массив в диапазон [0, 255] (если требуется)
+        mask_normalized = (mask_array * 255).astype(np.uint8)
+        
+        # Преобразуем numpy-массив в изображение
+        mask_image = Image.fromarray(mask_normalized.squeeze())  # Убираем лишнюю ось, если она есть
+        
+        # Сохраняем изображение на диск
+        mask_image.save("parse_mask.png")
+
         gt_lm = input_data['lm'][0, :, :].detach().cpu().numpy()
         # predict data
         pred_face_img = self.render_face * self.render_face_mask + (1 - self.render_face_mask) * input_data['img']
