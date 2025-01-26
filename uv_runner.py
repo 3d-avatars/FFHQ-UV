@@ -115,6 +115,7 @@ class UvRunner:
 
         flame_data['vt'] = refer_data['vt']
         flame_data['fvt'] = refer_data['fvt']
+        flame_data.pop('mtl_name', None)
 
         write_mesh_obj(flame_data, output_mesh_path)
 
