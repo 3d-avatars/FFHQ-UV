@@ -6,6 +6,7 @@ import os
 import torch
 from PIL import Image
 from pathlib import Path
+from typing import Dict, List
 
 from .FLAME_Apply_HIFI3D_UV.run_flame_apply_hifi3d_uv import read_mesh_obj, write_mesh_obj
 from .RGB_Fitting.dataset.fit_dataset import FitDataset
@@ -111,13 +112,32 @@ class UvRunner:
         # save_mesh_path = f'{input_mesh_path[:-4]}_w_HIFI3D_UV.obj'
 
         refer_data = read_mesh_obj(refer_mesh_path)
-        flame_data = read_mesh_obj(input_mesh_path)
+        head_data = read_mesh_obj(input_mesh_path)
 
-        flame_data['vt'] = refer_data['vt']
-        flame_data['fvt'] = refer_data['fvt']
-        flame_data.pop('mtl_name', None)
+        head_data['vt'] = refer_data['vt']
+        head_data['fvt'] = refer_data['fvt']
+        head_data.pop('mtl_name', None)
 
-        write_mesh_obj(flame_data, output_mesh_path)
+        write_mesh_obj(head_data, output_mesh_path)
+
+        eyes_data = self.__get_eyes_mesh(head_data)
+        head_data = self.__remove_eyes_from_head(head_data)
+
+        eyeballs_mesh_file = f'{output_mesh_path[:-4]}_eyes.obj'
+        write_mesh_obj(eyes_data, eyeballs_mesh_file)
+
+        head_mesh_file = output_mesh_path
+        write_mesh_obj(head_data, head_mesh_file)
+
+        logger.info(f"[UV Runner] Finished applying UV map for {input_mesh_path}")
+
+        return (eyeballs_mesh_file, head_mesh_file)
+
+    def __get_eyes_mesh(
+        self,
+        head_data: Dict[str, List[float]],
+    ) -> Dict[str, List[float]]:
+        logger.info(f"[UV Runner] Starting retrieving eyes mesh from head")
 
         eyes_vertices = []
         eyes_texture_vertices = []
@@ -127,31 +147,33 @@ class UvRunner:
         old_vertex_index_to_new = {}
         texture_coords_to_new_index = {}
 
-        for i in range(len(flame_data['v'])):
+        for i in range(len(head_data['v'])):
             if 3931 <= i <= 5022:
-                eyes_vertices.append(flame_data['v'][i])
+                eyes_vertices.append(head_data['v'][i])
                 old_vertex_index_to_new[i] = len(eyes_vertices) - 1
 
-        for i in range(len(flame_data['fv'])):
-            if 3931 <= flame_data['fv'][i][0] <= 5022:
+        for i in range(len(head_data['fv'])):
+            if 3931 <= head_data['fv'][i][0] <= 5022:
                 eyes_faces.append(
                     [
-                        old_vertex_index_to_new[flame_data['fv'][i][0]],
-                        old_vertex_index_to_new[flame_data['fv'][i][1]],
-                        old_vertex_index_to_new[flame_data['fv'][i][2]],
+                        old_vertex_index_to_new[old_index]
+                        for old_index
+                        in head_data['fv'][i]
                     ]
                 )
 
-                texture_indices = flame_data['fvt'][i]
+                texture_indices = head_data['fvt'][i]
                 new_texture_indices = []
                 for i in texture_indices:
-                    texture_coords = (flame_data['vt'][i][0] - 2, flame_data['vt'][i][1])
+                    texture_coords = (head_data['vt'][i][0] - 2, head_data['vt'][i][1])
 
                     if texture_coords not in texture_coords_to_new_index.keys():
                         eyes_texture_vertices.append(texture_coords)
                         texture_coords_to_new_index[texture_coords] = len(eyes_texture_vertices) - 1
 
-                    new_texture_indices.append(texture_coords_to_new_index[texture_coords])
+                    new_texture_indices.append(
+                        texture_coords_to_new_index[texture_coords]
+                    )
 
                 eyes_faces_textures.append(new_texture_indices)
 
@@ -161,32 +183,34 @@ class UvRunner:
             'fv': np.array(eyes_faces),
             'fvt': np.array(eyes_faces_textures)
         }
+        logger.info(f"[UV Runner] Finished retrieving eyes mesh from head")
 
-        eyeballs_mesh_file = f'{output_mesh_path[:-4]}_eyeballs.obj'
+        return eyes_data
 
-        write_mesh_obj(eyes_data, eyeballs_mesh_file)
+    def __remove_eyes_from_head(
+        self,
+        head_data: Dict[str, List[float]],
+    ) -> Dict[str, List[float]]:
+        logger.info(f"[UV Runner] Starting removing eyes from head mesh")
 
         vertices_to_delete = []
         faces_to_delete = []
 
-        for i in range(len(flame_data['fv'])):
+        for i in range(len(head_data['fv'])):
             is_eye_face = True
             for j in range(3):
-                if 3931 <= flame_data['fv'][i][j] <= 5022:
-                    vertices_to_delete.append(flame_data['fv'][i][j])
+                if 3931 <= head_data['fv'][i][j] <= 5022:
+                    vertices_to_delete.append(head_data['fv'][i][j])
                 else:
                     is_eye_face = False
 
             if is_eye_face:
                 faces_to_delete.append(i)
 
-        flame_data['v'] = np.delete(flame_data['v'], vertices_to_delete, axis=0)
-        flame_data['fv'] = np.delete(flame_data['fv'], faces_to_delete, axis=0)
-        flame_data['fvt'] = np.delete(flame_data['fvt'], faces_to_delete, axis=0)
+        head_data['v'] = np.delete(head_data['v'], vertices_to_delete, axis=0)
+        head_data['fv'] = np.delete(head_data['fv'], faces_to_delete, axis=0)
+        head_data['fvt'] = np.delete(head_data['fvt'], faces_to_delete, axis=0)
 
-        head_mesh_file = output_mesh_path
+        logger.info(f"[UV Runner] Finished removing eyes from head mesh")
 
-        write_mesh_obj(flame_data, head_mesh_file)
-        logger.info(f"[UV Runner] Finished applying UV map for {input_mesh_path}")
-
-        return (eyeballs_mesh_file, head_mesh_file)
+        return head_data
