@@ -90,7 +90,7 @@ class UvRunner:
 
         ffhq_uv_logger = Logger(
             vis_dir=output_dir_path,
-            flag=f'texgan_{self.texgan_model_name[:-4]}',
+            flag=f"texgan_{self.texgan_model_name[:-4]}",
             is_tb=True,
         )
 
@@ -108,22 +108,22 @@ class UvRunner:
         output_mesh_path: str,
     ) -> (str, str):
         logger.info(f"[UV Runner] Starting applying UV map for {input_mesh_path}")
-        refer_mesh_path = f'{dir_path}/FLAME_Apply_HIFI3D_UV/flame2hifi3d_assets/FLAME_w_HIFI3D_UV.obj'
-        # save_mesh_path = f'{input_mesh_path[:-4]}_w_HIFI3D_UV.obj'
+        refer_mesh_path = f"{dir_path}/FLAME_Apply_HIFI3D_UV/flame2hifi3d_assets/FLAME_w_HIFI3D_UV.obj"
+        # save_mesh_path = f"{input_mesh_path[:-4]}_w_HIFI3D_UV.obj"
 
         refer_data = read_mesh_obj(refer_mesh_path)
         head_data = read_mesh_obj(input_mesh_path)
 
-        head_data['vt'] = refer_data['vt']
-        head_data['fvt'] = refer_data['fvt']
-        head_data.pop('mtl_name', None)
+        head_data["vt"] = refer_data["vt"]
+        head_data["fvt"] = refer_data["fvt"]
+        head_data.pop("mtl_name", None)
 
         write_mesh_obj(head_data, output_mesh_path)
 
         eyes_data = self.__get_eyes_mesh(head_data)
         head_data = self.__remove_eyes_from_head(head_data)
 
-        eyeballs_mesh_file = f'{output_mesh_path[:-4]}_eyes.obj'
+        eyeballs_mesh_file = f"{output_mesh_path[:-4]}_eyes.obj"
         write_mesh_obj(eyes_data, eyeballs_mesh_file)
 
         head_mesh_file = output_mesh_path
@@ -135,8 +135,8 @@ class UvRunner:
 
     def __get_eyes_mesh(
         self,
-        head_data: Dict[str, List[float]],
-    ) -> Dict[str, List[float]]:
+        head_data: Dict[str, np.ndarray],
+    ) -> Dict[str, np.ndarray]:
         logger.info(f"[UV Runner] Starting retrieving eyes mesh from head")
 
         eyes_vertices = []
@@ -147,25 +147,25 @@ class UvRunner:
         old_vertex_index_to_new = {}
         texture_coords_to_new_index = {}
 
-        for i in range(len(head_data['v'])):
+        for i in range(len(head_data["v"])):
             if 3931 <= i <= 5022:
-                eyes_vertices.append(head_data['v'][i])
+                eyes_vertices.append(head_data["v"][i])
                 old_vertex_index_to_new[i] = len(eyes_vertices) - 1
 
-        for i in range(len(head_data['fv'])):
-            if 3931 <= head_data['fv'][i][0] <= 5022:
+        for i in range(len(head_data["fv"])):
+            if 3931 <= head_data["fv"][i][0] <= 5022:
                 eyes_faces.append(
                     [
                         old_vertex_index_to_new[old_index]
                         for old_index
-                        in head_data['fv'][i]
+                        in head_data["fv"][i]
                     ]
                 )
 
-                texture_indices = head_data['fvt'][i]
+                texture_indices = head_data["fvt"][i]
                 new_texture_indices = []
                 for i in texture_indices:
-                    texture_coords = (head_data['vt'][i][0] - 2, head_data['vt'][i][1])
+                    texture_coords = (head_data["vt"][i][0] - 2, head_data["vt"][i][1])
 
                     if texture_coords not in texture_coords_to_new_index.keys():
                         eyes_texture_vertices.append(texture_coords)
@@ -178,38 +178,99 @@ class UvRunner:
                 eyes_faces_textures.append(new_texture_indices)
 
         eyes_data = {
-            'v': np.array(eyes_vertices),
-            'vt': np.array(eyes_texture_vertices),
-            'fv': np.array(eyes_faces),
-            'fvt': np.array(eyes_faces_textures)
+            "v": np.array(eyes_vertices),
+            "vt": np.array(eyes_texture_vertices),
+            "fv": np.array(eyes_faces),
+            "fvt": np.array(eyes_faces_textures),
         }
+        eyes_data = self.__remove_half_of_eyes(eyes_data)
         logger.info(f"[UV Runner] Finished retrieving eyes mesh from head")
 
         return eyes_data
 
+    def __remove_half_of_eyes(
+        self,
+        eyes_data: Dict[str, np.ndarray],
+    ) -> Dict[str, np.ndarray]:
+        logger.info(f"[UV Runner] Starting removing half of eyes")
+
+        vertices = eyes_data["v"]
+        faces = eyes_data["fv"]
+        faces_textures = eyes_data["fvt"]
+
+        faces_count_half = int(faces.shape[0] / 2)
+
+        # vertices from which we will
+        anchor_vertex_indices = [961, 415]
+
+        # find all faces that contain anchor vertices
+        adjacent_faces_indices = np.where(
+            np.isin(faces, anchor_vertex_indices).any(axis=1)
+        )[0]
+
+        faces_indices_to_remove = set(adjacent_faces_indices)
+        polygons_to_remove_count = len(faces_indices_to_remove)
+
+        while polygons_to_remove_count < faces_count_half:
+            # find all faces adjacent to current
+            new_adjacent_indices = np.where(
+                np.isin(faces, faces.take(list(faces_indices_to_remove), axis=0)).any(axis=1)
+            )[0]
+
+            old_len = len(faces_indices_to_remove)
+
+            faces_indices_to_remove = faces_indices_to_remove | set(new_adjacent_indices.data)
+            polygons_to_remove_count += len(faces_indices_to_remove) - old_len
+
+        # remove faces and textures
+        remaining_faces = np.delete(faces, list(faces_indices_to_remove), axis=0)
+        remaining_face_textures = np.delete(faces_textures, list(faces_indices_to_remove), axis=0)
+
+        # remove unused vertices
+        used_vertices_mask = np.zeros(len(vertices), dtype=bool)
+        used_vertices_mask[np.unique(remaining_faces)] = True
+
+        remaining_vertices = vertices[used_vertices_mask]
+
+        # update vertices mapping for faces
+        remapping = np.zeros(len(vertices), dtype=int) - 1
+        remapping[np.where(used_vertices_mask)[0]] = np.arange(len(remaining_vertices))
+
+        updated_faces = remapping[remaining_faces]
+
+        eyes_data = {
+            "v": remaining_vertices,
+            "vt": eyes_data["vt"],
+            "fv": updated_faces,
+            "fvt": remaining_face_textures,
+        }
+
+        logger.info(f"[UV Runner] Finished removing half of eyes")
+        return eyes_data
+
     def __remove_eyes_from_head(
         self,
-        head_data: Dict[str, List[float]],
-    ) -> Dict[str, List[float]]:
+        head_data: Dict[str, np.ndarray],
+    ) -> Dict[str, np.ndarray]:
         logger.info(f"[UV Runner] Starting removing eyes from head mesh")
 
         vertices_to_delete = []
         faces_to_delete = []
 
-        for i in range(len(head_data['fv'])):
+        for i in range(len(head_data["fv"])):
             is_eye_face = True
             for j in range(3):
-                if 3931 <= head_data['fv'][i][j] <= 5022:
-                    vertices_to_delete.append(head_data['fv'][i][j])
+                if 3931 <= head_data["fv"][i][j] <= 5022:
+                    vertices_to_delete.append(head_data["fv"][i][j])
                 else:
                     is_eye_face = False
 
             if is_eye_face:
                 faces_to_delete.append(i)
 
-        head_data['v'] = np.delete(head_data['v'], vertices_to_delete, axis=0)
-        head_data['fv'] = np.delete(head_data['fv'], faces_to_delete, axis=0)
-        head_data['fvt'] = np.delete(head_data['fvt'], faces_to_delete, axis=0)
+        head_data["v"] = np.delete(head_data["v"], vertices_to_delete, axis=0)
+        head_data["fv"] = np.delete(head_data["fv"], faces_to_delete, axis=0)
+        head_data["fvt"] = np.delete(head_data["fvt"], faces_to_delete, axis=0)
 
         logger.info(f"[UV Runner] Finished removing eyes from head mesh")
 
