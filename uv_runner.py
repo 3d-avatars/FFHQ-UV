@@ -6,7 +6,7 @@ import os
 import torch
 from PIL import Image
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from .FLAME_Apply_HIFI3D_UV.run_flame_apply_hifi3d_uv import read_mesh_obj, write_mesh_obj
 from .RGB_Fitting.dataset.fit_dataset import FitDataset
@@ -106,10 +106,10 @@ class UvRunner:
         self,
         input_mesh_path: str,
         output_mesh_path: str,
-    ) -> (str, str):
+        should_save_eyes_separately: True
+    ) -> (str, Optional[str], Optional[str]):
         logger.info(f"[UV Runner] Starting applying UV map for {input_mesh_path}")
         refer_mesh_path = f"{dir_path}/FLAME_Apply_HIFI3D_UV/flame2hifi3d_assets/FLAME_w_HIFI3D_UV.obj"
-        # save_mesh_path = f"{input_mesh_path[:-4]}_w_HIFI3D_UV.obj"
 
         refer_data = read_mesh_obj(refer_mesh_path)
         head_data = read_mesh_obj(input_mesh_path)
@@ -120,23 +120,30 @@ class UvRunner:
 
         write_mesh_obj(head_data, output_mesh_path)
 
-        eyes_data = self.__get_eyes_mesh(head_data)
+        (eyes_data, half_eyes_data) = self.__get_eyes_mesh(head_data)
         head_data = self.__remove_eyes_from_head(head_data)
 
-        eyeballs_mesh_file = f"{output_mesh_path[:-4]}_eyes.obj"
-        write_mesh_obj(eyes_data, eyeballs_mesh_file)
+        if should_save_eyes_separately:
+            eyeballs_full_mesh_file = f"{output_mesh_path[:-4]}_eyes_full.obj"
+            eyeballs_half_mesh_file = f"{output_mesh_path[:-4]}_eyes_half.obj"
+
+            write_mesh_obj(eyes_data, eyeballs_full_mesh_file)
+            write_mesh_obj(half_eyes_data, eyeballs_half_mesh_file)
+        else:
+            eyeballs_full_mesh_file = None
+            eyeballs_half_mesh_file = None
 
         head_mesh_file = output_mesh_path
         write_mesh_obj(head_data, head_mesh_file)
 
         logger.info(f"[UV Runner] Finished applying UV map for {input_mesh_path}")
 
-        return (eyeballs_mesh_file, head_mesh_file)
+        return (head_mesh_file, eyeballs_full_mesh_file, eyeballs_half_mesh_file)
 
     def __get_eyes_mesh(
         self,
         head_data: Dict[str, np.ndarray],
-    ) -> Dict[str, np.ndarray]:
+    ) -> (Dict[str, np.ndarray], Dict[str, np.ndarray]):
         logger.info(f"[UV Runner] Starting retrieving eyes mesh from head")
 
         eyes_vertices = []
@@ -183,10 +190,10 @@ class UvRunner:
             "fv": np.array(eyes_faces),
             "fvt": np.array(eyes_faces_textures),
         }
-        eyes_data = self.__remove_half_of_eyes(eyes_data)
+        half_eyes_data = self.__remove_half_of_eyes(eyes_data)
         logger.info(f"[UV Runner] Finished retrieving eyes mesh from head")
 
-        return eyes_data
+        return eyes_data, half_eyes_data
 
     def __remove_half_of_eyes(
         self,
