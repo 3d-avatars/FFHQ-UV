@@ -4,8 +4,8 @@
 *cache*
 /checkpoints/*
 /topo_assets/*
-!/checkpoints/download and put here
-!/topo_assets/download and put here
+!/checkpoints/.gitkeep
+!/topo_assets/.gitkeep
 /examples/fitting_examples/outputs*
 /debug_data
 /debug*
