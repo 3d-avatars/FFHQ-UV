@@ -245,11 +245,69 @@ if __name__ == '__main__':
     # Simply setting the UV coordinates of the eyeball vertices to (1.0, 1.0) can temporarily masks the eyeball texture in MeshLab.
     # This is only for simple visualization and is not recommended for rendering.
     #
-    vt_new = np.reshape(np.array([0.0, 1.0]), [1, 2])
-    flame_data['vt'] = np.concatenate([flame_data['vt'], vt_new], axis=0)
-    idx_new = flame_data['vt'].shape[0]
+
+    eyes_vertices = []
+    eyes_texture_vertices = []
+    eyes_faces = []
+    eyes_faces_textures = []
+
+    old_vertex_index_to_new = {}
+    texture_coords_to_new_index = {}
+    
+    for i in range(len(flame_data['v'])):
+        if 3931 <= i <= 5022:
+            eyes_vertices.append(flame_data['v'][i])
+            old_vertex_index_to_new[i] = len(eyes_vertices) - 1
+
     for i in range(len(flame_data['fv'])):
+        if 3931 <= flame_data['fv'][i][0] <= 5022:            
+            eyes_faces.append(
+                [
+                    old_vertex_index_to_new[flame_data['fv'][i][0]],
+                    old_vertex_index_to_new[flame_data['fv'][i][1]],
+                    old_vertex_index_to_new[flame_data['fv'][i][2]],
+                ]
+            )
+            
+            texture_indices = flame_data['fvt'][i]
+            new_texture_indices = []
+            for i in texture_indices:
+                texture_coords = (flame_data['vt'][i][0] - 2, flame_data['vt'][i][1])
+
+                if texture_coords not in texture_coords_to_new_index.keys():
+                    eyes_texture_vertices.append(texture_coords)
+                    texture_coords_to_new_index[texture_coords] = len(eyes_texture_vertices) - 1
+                
+                new_texture_indices.append(texture_coords_to_new_index[texture_coords])
+
+            eyes_faces_textures.append(new_texture_indices)
+
+    eyes_data = {
+        'v': np.array(eyes_vertices),
+        'vt': np.array(eyes_texture_vertices),
+        'fv': np.array(eyes_faces),
+        'fvt': np.array(eyes_faces_textures)
+    }
+
+    write_mesh_obj(eyes_data, f'{save_mesh_path[:-4]}_eyeballs.obj')
+
+    vertices_to_delete = []
+    texture_vertices_to_delete = []
+    faces_to_delete = []
+        
+    for i in range(len(flame_data['fv'])):
+        is_eye_face = True
         for j in range(3):
             if 3931 <= flame_data['fv'][i][j] <= 5022:
-                flame_data['fvt'][i][j] = idx_new
+                vertices_to_delete.append(flame_data['fv'][i][j])
+            else:
+                is_eye_face = False
+
+        if is_eye_face:
+            faces_to_delete.append(i)
+    
+    flame_data['v'] = np.delete(flame_data['v'], vertices_to_delete, axis=0)
+    flame_data['fv'] = np.delete(flame_data['fv'], faces_to_delete, axis=0)
+    flame_data['fvt'] = np.delete(flame_data['fvt'], faces_to_delete, axis=0)
+
     write_mesh_obj(flame_data, f'{save_mesh_path[:-4]}_simply_handle_eyeballs.obj')

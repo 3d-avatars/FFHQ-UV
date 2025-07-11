@@ -276,17 +276,17 @@ def pad(total_boxes, w, h):
 
 # create tensorflow graph for mtcnn
 def load_mtcnn_graph(graph_filename):
-    with tf.gfile.GFile(graph_filename, 'rb') as f:
-        graph_def = tf.GraphDef()
+    with tf.io.gfile.GFile(graph_filename, 'rb') as f:
+        graph_def = tf.compat.v1.GraphDef()
         graph_def.ParseFromString(f.read())
 
     with tf.Graph().as_default() as graph:
         tf.import_graph_def(graph_def, name="")
         # mtcnn_sess = tf.Session(graph=graph)
-        mtcnn_sess = tf.InteractiveSession(graph=graph)
+        mtcnn_sess = tf.compat.v1.InteractiveSession(graph=graph)
 
         with mtcnn_sess.as_default():
-            tf.global_variables_initializer().run()
+            tf.compat.v1.global_variables_initializer().run()
             pnet, rnet, onet = create_mtcnn_pb(mtcnn_sess)
 
     return mtcnn_sess, pnet, rnet, onet

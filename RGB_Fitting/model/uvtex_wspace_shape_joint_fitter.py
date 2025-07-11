@@ -3,8 +3,8 @@ import numpy as np
 import torch.nn.functional as F
 
 from .losses import perceptual_loss, photo_loss, vgg_loss, landmark_loss, latents_geocross_loss, coeffs_reg_loss
-from utils.preprocess_utils import estimate_norm_torch
-from utils.data_utils import tensor2np, draw_mask, draw_landmarks, img3channel
+from ..utils.preprocess_utils import estimate_norm_torch
+from ..utils.data_utils import tensor2np, draw_mask, draw_landmarks, img3channel
 
 
 class Fitter:

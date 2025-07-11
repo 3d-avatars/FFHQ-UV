@@ -3,6 +3,7 @@ import time
 import argparse
 import torch
 import numpy as np
+from PIL import Image
 
 from dataset.fit_dataset import FitDataset
 from utils.data_utils import tensor2np, img3channel, draw_mask, draw_landmarks, save_img
@@ -62,6 +63,10 @@ if __name__ == '__main__':
         parse_img = draw_mask(input_img, parse_mask)
         gt_lm = input_data['lm'][0, :, :].detach().cpu().numpy()
         gt_lm[..., 1] = input_img.shape[0] - 1 - gt_lm[..., 1]
+        mask_image = Image.fromarray((img3channel(parse_mask) * 255).astype(np.uint8))
+        orig_image = Image.fromarray((img3channel(input_img) ).astype(np.uint8))
+        mask_image.save("mask.png")
+        orig_image.save("orig.png")
         lm_img = draw_landmarks(input_img, gt_lm, color='b')
         combine_img = np.concatenate([input_img, skin_img, parse_img, lm_img], axis=1)
         save_img(combine_img, os.path.join(args.output_dir + '_vis', f'{basename}.png'))

@@ -106,7 +106,8 @@ def align_img(img, lm, lm3D, skin_mask=None, parse_mask=None, target_size=224., 
                                                                        target_size=target_size,
                                                                        skin_mask=skin_mask,
                                                                        parse_mask=parse_mask)
-    trans_params = np.array([w0, h0, s, t[0], t[1]])
+
+    trans_params = np.array([w0, h0, s, t[0], t[1]], dtype=np.ndarray)
 
     return trans_params, img_new, lm_new, skin_mask_new, parse_mask_new
 

@@ -5,7 +5,7 @@ set -e
 ######################### Configuration #########################
 # mesh_path: the path of the mesh of the head which is without eyeballs.
 #################################################################
-mesh_path=../examples/mesh_add_eyeball_examples/mesh_head.obj
+mesh_path=../input_mesh/pixar-egor_w_HIFI3D_UV.obj
 
 
 #################### Run Add Eyeball Script #####################

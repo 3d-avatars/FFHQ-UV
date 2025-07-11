@@ -2,9 +2,9 @@ import torch
 import numpy as np
 from scipy.io import loadmat
 
-from utils.data_utils import read_img, img3channel, img2mask, np2pillow, pillow2np, np2tensor
-from utils.preprocess_utils import align_img, estimate_norm
-from third_party import Landmark68_API, SkinMask_API, FaceParsing_API
+from ..utils.data_utils import read_img, img3channel, img2mask, np2pillow, pillow2np, np2tensor
+from ..utils.preprocess_utils import align_img, estimate_norm
+from ..third_party import Landmark68_API, SkinMask_API, FaceParsing_API
 
 
 class FitDataset:

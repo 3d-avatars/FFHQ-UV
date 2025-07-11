@@ -3,9 +3,14 @@ import numpy as np
 from scipy.io import loadmat
 import tensorflow as tf
 from shutil import move
+from pathlib import Path
 
-BBRegressorParam = loadmat('third_party/landmark68/BBRegressorParam_r.mat')
-mean_face = np.loadtxt('third_party/landmark68/test_mean_face.txt')
+
+file_path = str(Path(__file__).absolute())
+dir_path = file_path[: file_path.rfind("/")]
+
+BBRegressorParam = loadmat(f'{dir_path}/BBRegressorParam_r.mat')
+mean_face = np.loadtxt(f'{dir_path}/test_mean_face.txt')
 mean_face = mean_face.reshape([68, 2])
 
 
@@ -98,8 +103,8 @@ def detect_68p(img, five_points, sess, input_op, output_op):
 
 # create tensorflow graph for landmark detector
 def load_lm_graph(graph_filename):
-    with tf.gfile.GFile(graph_filename, 'rb') as f:
-        graph_def = tf.GraphDef()
+    with tf.io.gfile.GFile(graph_filename, 'rb') as f:
+        graph_def = tf.compat.v1.GraphDef()
         graph_def.ParseFromString(f.read())
 
     with tf.Graph().as_default() as graph:
@@ -107,6 +112,6 @@ def load_lm_graph(graph_filename):
         img_224 = graph.get_tensor_by_name('net/input_imgs:0')
         output_lm = graph.get_tensor_by_name('net/lm:0')
         # lm_sess = tf.Session(graph=graph)
-        lm_sess = tf.InteractiveSession(graph=graph)
+        lm_sess = tf.compat.v1.InteractiveSession(graph=graph)
 
     return lm_sess, img_224, output_lm
